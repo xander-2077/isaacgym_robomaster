@@ -26,7 +26,7 @@ def main():
 
 
     # 设置URDF文件的路径
-    asset_root = "/home/xander/Downloads/rm_ep_1"
+    asset_root = "/home/xander/Codes/isaacgym_robomaster/assets/urdf/robomasterEP_description/robot/"
     asset_file = "robomaster_ep.urdf"
     # asset_root = "/home/xander/Codes/isaacgym_robomaster/assets/urdf/ycb/011_banana/"
     # asset_file = "011_banana.urdf"
@@ -35,7 +35,8 @@ def main():
     asset_options = isaacgym.gymapi.AssetOptions()
     asset_options.fix_base_link = True
     asset_options.default_dof_drive_mode = isaacgym.gymapi.DOF_MODE_POS
-    asset = gym.load_asset(sim, asset_root, asset_file, asset_options)
+    asset_options.flip_visual_attachments = True
+    asset = gym.load_urdf(sim, asset_root, asset_file, asset_options)
 
     # 创建环境实例
     plane_params = isaacgym.gymapi.PlaneParams()
