@@ -152,7 +152,7 @@ class Robomaster(VecTask):
 
         asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../assets")
         asset_file = "urdf/robomasterEP_description/robot/robomaster.urdf"
-
+  
         if "asset" in self.cfg["env"]:
             asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.cfg["env"]["asset"].get("assetRoot", asset_root))
             asset_file = self.cfg["env"]["asset"].get("assetFileName", asset_file)
@@ -164,6 +164,7 @@ class Robomaster(VecTask):
         asset_options = gymapi.AssetOptions()
         asset_options.fix_base_link = False
         asset_options.disable_gravity = False
+        asset_options.flip_visual_attachments = True
         # asset_options.use_mesh_materials = True
         robomaster_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         robomaster_dof_stiffness = to_torch([0, 0, 0, 0, 5000., 5000.], dtype=torch.float, device=self.device)
