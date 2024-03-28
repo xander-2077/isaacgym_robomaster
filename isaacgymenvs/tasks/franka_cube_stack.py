@@ -491,6 +491,7 @@ class FrankaCubeStack(VecTask):
         self._effort_control[env_ids, :] = torch.zeros_like(pos)
 
         # Deploy updates
+        print(self._pos_control.shape, self._effort_control.shape, self._dof_state.shape)
         multi_env_ids_int32 = self._global_indices[env_ids, 0].flatten()
         self.gym.set_dof_position_target_tensor_indexed(self.sim,
                                                         gymtorch.unwrap_tensor(self._pos_control),

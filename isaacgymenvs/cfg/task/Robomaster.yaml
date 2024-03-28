@@ -7,7 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:8192,${...num_envs}}
   envSpacing: 1.5
-  episodeLength: 300
+  episodeLength: 50
   enableDebugVis: False
 
   clipObservations: 5.0
@@ -29,9 +29,6 @@ env:
 
   controlType: osc  # options are {joint_tor, osc}
 
-  asset:
-    assetRoot: "../../assets"
-    assetFileNamerobomaster: "urdf/robomaster_description/robots/robomaster_ep.urdf"
 
   # set to True if you use camera sensors in the environment
   enableCameraSensors: False
