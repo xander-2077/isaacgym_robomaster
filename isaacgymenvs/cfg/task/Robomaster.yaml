@@ -13,17 +13,11 @@ env:
   clipObservations: 5.0
   clipActions: 1.0
 
-  startPositionNoise: 0.25
-  startRotationNoise: 0.785
-  robomasterPositionNoise: 0.0
-  robomasterRotationNoise: 0.0
-  robomasterDofNoise: 0.25
 
   aggregateMode: 3
 
   actionScale: 1.0
   distRewardScale: 0.1
-  liftRewardScale: 1.5
   alignRewardScale: 2.0
   stackRewardScale: 16.0
 

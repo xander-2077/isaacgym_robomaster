@@ -45,7 +45,7 @@ class Robomaster(VecTask):
         # self.aggregate_mode = self.cfg["env"]["aggregateMode"]
 
         # 机器人坐标朝向，钳子角度，球位置，目标位置，3 + 2 + 2 + 2
-        self.cfg["env"]["numObservations"] = 9
+        self.cfg["env"]["numObservations"] = 14
 
         # 4个轮子速度，钳子关闭与否
         self.cfg["env"]["numActions"] = 5
@@ -98,6 +98,8 @@ class Robomaster(VecTask):
 
     def _create_ground_plane(self):
         plane_params = gymapi.PlaneParams()
+        plane_params.dynamic_friction = 100
+        plane_params.static_friction = 100
         # set the normal force to be z dimension
         plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0) if self.up_axis == 'z' else gymapi.Vec3(0.0, 1.0, 0.0)
         self.gym.add_ground(self.sim, plane_params)
@@ -134,8 +136,8 @@ class Robomaster(VecTask):
         robomaster_dof_damping = to_torch([0, 0, 0, 0, 0, 0], dtype=torch.float, device=self.device)
 
 
-        self.ballA_size = 0.020
-        self.ballB_size = 0.070
+        self.ballA_size = 0.030
+        self.ballB_size = 0.030
 
         # Create ballA asset
         ballA_opts = gymapi.AssetOptions()
@@ -187,10 +189,9 @@ class Robomaster(VecTask):
         ballB_start_pose.p = gymapi.Vec3(1.0, 0.0, 0.0)
         ballB_start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
-        num_robomaster_bodies = self.gym.get_asset_rigid_body_count(robomaster_asset)
-        num_robomaster_shapes = self.gym.get_asset_rigid_shape_count(robomaster_asset)
-        max_agg_bodies = num_robomaster_bodies + 2     # 1 for table, ballA, ballB
-        max_agg_shapes = num_robomaster_shapes + 2
+        # num_robomaster_bodies = self.gym.get_asset_rigid_body_count(robomaster_asset)
+        # num_robomaster_shapes = self.gym.get_asset_rigid_shape_count(robomaster_asset)
+
 
         self.robomasters = []
         self.envs = []
@@ -308,17 +309,21 @@ class Robomaster(VecTask):
 
     def compute_observations(self, env_ids=None):
         robomaster_pos = torch.cat((self._root_state[:, 0,:2],self._root_state[:, 0, 5].view(-1, 1)),1)
+        robomaster_vel = torch.cat((self._root_state[:, 0,7:9],self._root_state[:, 0, -1].view(-1, 1)),1)
         gripper_dof_pos = self._dof_pos[:, :2]
+        
         ballA_pos = self._ballA_state[:, :2]
+        
+        ballA_vel = self._ballA_state[:, 7:9]
         ballA_to_ballB_pos = self._ballB_state[:, :2] - self._ballA_state[:, :2]
-        self.obs_buf = torch.cat([robomaster_pos, gripper_dof_pos, ballA_pos, ballA_to_ballB_pos], dim=-1)
+        self.obs_buf = torch.cat([robomaster_pos,robomaster_vel, gripper_dof_pos, ballA_pos, ballA_vel, ballA_to_ballB_pos], dim=-1)
         return self.obs_buf
 
     def reset_idx(self, env_ids):
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         # Reset balls, sampling ball B first, then A
         self._reset_init_ball_state(ball='B', env_ids=env_ids)
-        self._reset_init_ball_state(ball='A', env_ids=env_ids)
+        # self._reset_init_ball_state(ball='A', env_ids=env_ids)
         self._root_state[env_ids, 0, 0] = -0.45
         self._root_state[env_ids, 0, 1] = 0
         self._root_state[env_ids, self._ballA_id, :] = self._ballA_state[env_ids].clone()
@@ -364,30 +369,46 @@ class Robomaster(VecTask):
 
         # Initialize buffer to hold sampled values
         num_resets = len(env_ids)
-        sampled_ball_state = torch.zeros(num_resets, 13, device=self.device)
+        # sampled_ball_state = torch.zeros(num_resets, 13, device=self.device)
 
-        # Get correct references depending on which one was selected
-        if ball.lower() == 'a':
-            this_ball_state_all = self._ballA_state
-            ball_heights = self.ballA_size
-        elif ball.lower() == 'b':
-            this_ball_state_all = self._ballB_state
-            ball_heights = self.ballB_size
-        else:
-            raise ValueError(f"Invalid ball specified, options are 'A' and 'B'; got: {ball}")
-
-
-        # Set z value, which is fixed height
-        sampled_ball_state[:, 2] = ball_heights
-        # Initialize rotation, which is no rotation (quat w = 1)
-        sampled_ball_state[:, 6] = 1.0
-
-        # If we're verifying valid sampling, we need to check and re-sample if any are not collision-free
-        # We use a simple heuristic of checking based on balls' radius to determine if a collision would occur
+        # # Get correct references depending on which one was selected
+        # if ball.lower() == 'a':
+        #     this_ball_state_all = self._ballA_state
+        #     ball_heights = self.ballA_size
+        # elif ball.lower() == 'b':
+        #     this_ball_state_all = self._ballB_state
+        #     ball_heights = self.ballB_size
+        # else:
+        #     raise ValueError(f"Invalid ball specified, options are 'A' and 'B'; got: {ball}")
         
-        sampled_ball_state[:, :2] = torch.tensor([0, 0], device=self.device, dtype=torch.float32)+(torch.rand(sampled_ball_state[:, :2].shape, device=self.device, dtype=torch.float32)-0.5)
-        # sampled_ball_state[:, :2] = torch.tensor([-0.45, 0], device=self.device, dtype=torch.float32)
-        this_ball_state_all[env_ids, :] = sampled_ball_state
+
+        # # Set z value, which is fixed height
+        # sampled_ball_state[:, 2] = ball_heights + 0.001
+        # # Initialize rotation, which is no rotation (quat w = 1)
+        # sampled_ball_state[:, 6] = 1.0
+
+        # # If we're verifying valid sampling, we need to check and re-sample if any are not collision-free
+        # # We use a simple heuristic of checking based on balls' radius to determine if a collision would occur
+        
+        # sampled_ball_state[:, :2] = torch.tensor([0, 0], device=self.device, dtype=torch.float32)+(torch.rand(sampled_ball_state[:, :2].shape, device=self.device, dtype=torch.float32)-0.5)
+        # # sampled_ball_state[:, :2] = torch.tensor([-0.45, 0], device=self.device, dtype=torch.float32)
+        # this_ball_state_all[env_ids, :] = sampled_ball_state
+
+        ball_heights = self.ballA_size
+        ballA_state = torch.zeros(num_resets, 13, device=self.device)
+        ballA_state[:, 2] = ball_heights + 0.001
+        ballA_state[:, 6] = 1.0
+        ballA_state[:, :2] = torch.tensor([0, -0.2], device=self.device, dtype=torch.float32)+0*(torch.rand(ballA_state[:, :2].shape, device=self.device, dtype=torch.float32)-0.5)
+        self._ballA_state[env_ids, :] = ballA_state
+
+        ballB_state = torch.zeros(num_resets, 13, device=self.device)
+        ballB_state[:, 2] = ball_heights + 0.001
+        ballB_state[:, 6] = 1.0
+        ballB_state[:, :2] = torch.tensor([0, 0.2], device=self.device, dtype=torch.float32)+0*(torch.rand(ballB_state[:, :2].shape, device=self.device, dtype=torch.float32)-0.5)
+        self._ballB_state[env_ids, :] = ballB_state
+        
+
+
 
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
@@ -429,20 +450,21 @@ def compute_robomaster_reward(
     reset_buf, progress_buf, _root_state, reward_settings, max_episode_length
 ):
     # type: (Tensor, Tensor, Tensor, Dict[str, float], float) -> Tuple[Tensor, Tensor]
-
-    robomaster_pos = torch.cat((_root_state[:, 0, :2],_root_state[:, 0, 5].view(-1, 1)),1)
+    robomaster_pos = _root_state[:, 0, :2].clone()
+    robomaster_vel = _root_state[:, 0,7:9].clone()
     ballA_pos = _root_state[:, 1, :2]
+    ballA_vel = _root_state[:, 1, 7:9]
     ballB_pos =  _root_state[:, 2, :2]
+    delta1 = torch.abs(ballA_pos - robomaster_pos)
+    norm_1 = torch.sum(delta1, dim=1)
+    dist_reward1 = torch.tanh(torch.sum(robomaster_vel * (ballA_pos - robomaster_pos), dim=1)/norm_1)
+
     ballA_to_ballB_pos = ballB_pos - ballA_pos
-    # distance from hand to the ballA
-    d_lf = torch.norm(ballA_pos - robomaster_pos[:,:2], dim=-1)
-    dist_reward = 1 - torch.tanh(10.0 * d_lf)
+    norm_2 = torch.sum(torch.abs(ballA_to_ballB_pos), dim=1)
+    dist_reward2 = torch.tanh(torch.sum(ballA_vel*ballA_to_ballB_pos, dim=1)/norm_2)
+    
 
-    # how closely aligned ballA is to ballB (only provided if ballA is lifted)
-    d_ab = torch.norm(ballA_to_ballB_pos, dim=-1)
-    align_reward = torch.where(dist_reward > 0.9, 1 - torch.tanh(10.0 * d_ab), d_ab*0)
-
-    stack_reward = (torch.norm(ballA_to_ballB_pos[:, :2], dim=-1) < 0.02)
+    stack_reward = (norm_2 < 0.06)
 
     # Compose rewards
 
@@ -450,7 +472,7 @@ def compute_robomaster_reward(
     rewards = torch.where(
         stack_reward,
         reward_settings["r_stack_scale"] * stack_reward,
-        reward_settings["r_dist_scale"] * dist_reward + reward_settings["r_align_scale"] * align_reward,
+        reward_settings["r_dist_scale"] * dist_reward1 + reward_settings["r_align_scale"] * dist_reward2,
     )
 
     # Compute resets
