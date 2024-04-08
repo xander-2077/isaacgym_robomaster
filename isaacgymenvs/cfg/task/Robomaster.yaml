@@ -8,31 +8,22 @@ env:
   # numEnvs: ${resolve_default:8192,${...num_envs}}
   numEnvs: ${resolve_default:16,${...num_envs}}
   envSpacing: 1.5
-  episodeLength: 300
+  episodeLength: 400
   enableDebugVis: False
 
   clipObservations: 5.0
   clipActions: 1.0
 
-  startPositionNoise: 0.25
-  startRotationNoise: 0.785
-  robomasterPositionNoise: 0.0
-  robomasterRotationNoise: 0.0
-  robomasterDofNoise: 0.25
 
   aggregateMode: 3
 
   actionScale: 1.0
   distRewardScale: 0.1
-  liftRewardScale: 1.5
   alignRewardScale: 2.0
   stackRewardScale: 16.0
 
   controlType: osc  # options are {joint_tor, osc}
 
-  asset:
-    assetRoot: "../../assets"
-    assetFileNamerobomaster: "urdf/robomaster_description/robots/robomaster_ep.urdf"
 
   # set to True if you use camera sensors in the environment
   enableCameraSensors: False

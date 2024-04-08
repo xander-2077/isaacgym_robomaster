@@ -8,7 +8,7 @@
     <created>2021-01-18T15:35:12</created>
     <modified>2021-01-18T15:35:12</modified>
     <unit name="meter" meter="1"/>
-    <up_axis>Z_UP</up_axis>
+    <up_axis>Y_UP</up_axis>
   </asset>
   <library_images>
     <image id="EP_all_01_b_png" name="EP_all_01_b_png">
