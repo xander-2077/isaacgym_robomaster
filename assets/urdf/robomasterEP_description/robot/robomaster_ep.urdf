@@ -1269,7 +1269,7 @@
             <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
         </joint>
     </transmission> -->
-  <gazebo>
+  <!-- <gazebo>
     <plugin filename="libgazebo_ros_control.so" name="gazebo_ros_control">
         </plugin>
   </gazebo>
@@ -1281,6 +1281,5 @@
       <odometryRate>20.0</odometryRate>
       <robotBaseFrame>base_link</robotBaseFrame>
     </plugin>
-  </gazebo>
+  </gazebo> -->
 </robot>
-
