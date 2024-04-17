@@ -1,7 +1,8 @@
 # ISAAC GYM ROBOMASTER
 
-Modified files:
-- isaacgymenvs/tasks/robomaster_move.py
-- isaacgymenvs/cfg/task/Robomaster.yaml
-- assets/urdf/robomasterEP_description
+训练：
+```
+python train.py task=Robomaster capture_video=True
+```
 
+推理：
