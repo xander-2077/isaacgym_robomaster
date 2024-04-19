@@ -1170,28 +1170,24 @@
     <parent link="chassis_base_link"/>
     <child link="front_left_wheel_link"/>
     <axis xyz="1 0 0"/>
-    <limit effort="30" velocity="5"/>
   </joint>
   <joint name="front_right_wheel_joint" type="continuous">
     <origin rpy="0 0 1.5707963267948966" xyz="0.1 -0.1 0.01535"/>
     <parent link="chassis_base_link"/>
     <child link="front_right_wheel_link"/>
     <axis xyz="1 0 0"/>
-    <limit effort="30" velocity="5"/>
   </joint>
   <joint name="rear_left_wheel_joint" type="continuous">
     <origin rpy="0 0 1.5707963267948966" xyz="-0.1 0.1 0.01535"/>
     <parent link="chassis_base_link"/>
     <child link="rear_left_wheel_link"/>
     <axis xyz="1 0 0"/>
-    <limit effort="30" velocity="5"/>
   </joint>
   <joint name="rear_right_wheel_joint" type="continuous">
     <origin rpy="0 0 1.5707963267948966" xyz="-0.1 -0.1 0.01535"/>
     <parent link="chassis_base_link"/>
     <child link="rear_right_wheel_link"/>
     <axis xyz="1 0 0"/>
-    <limit effort="30" velocity="5"/>
   </joint>
 
 

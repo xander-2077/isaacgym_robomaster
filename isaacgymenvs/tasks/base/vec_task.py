@@ -299,9 +299,9 @@ class VecTask(Env):
             #     self.viewer, None, cam_pos, cam_target)
 
             # 俯视角
-            self.gym.viewer_camera_look_at(self.viewer, None, gymapi.Vec3(-0.55, 0.1, 3), gymapi.Vec3(0, 0, 0))
+            self.gym.viewer_camera_look_at(self.viewer, None, gymapi.Vec3(-0.55, 0.55, 4), gymapi.Vec3(0, 0, 0))
 
-            # self.gym.viewer_camera_look_at(self.viewer, None, gymapi.Vec3(-0.46, 1, 0.2), gymapi.Vec3(-0.45, 0, 0))
+            # self.gym.viewer_camera_look_at(self.viewer, None, gymapi.Vec3(-1, 1, 1), gymapi.Vec3(-0.45, 0, 0))
     def allocate_buffers(self):
         """Allocate the observation, states, etc. buffers.
 

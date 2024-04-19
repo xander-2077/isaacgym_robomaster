@@ -19,10 +19,8 @@ env:
 
   actionScale: 1.0
   distRewardScale: 0.1
-  alignRewardScale: 2.0
   stackRewardScale: 16.0
 
-  controlType: osc  # options are {joint_tor, osc}
 
 
   # set to True if you use camera sensors in the environment
