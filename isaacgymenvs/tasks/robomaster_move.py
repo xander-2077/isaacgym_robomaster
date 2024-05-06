@@ -46,12 +46,11 @@ class Robomaster(VecTask):
         self.action_scale = self.cfg["env"]["actionScale"]
         # self.aggregate_mode = self.cfg["env"]["aggregateMode"]
 
-        # 机器人坐标朝向，钳子角度，球位置，目标位置，3 + 2 + 2 + 2
-        self.cfg["env"]["numObservations"] = 16
+        self.cfg["env"]["numObservations"] = 10
 
         # 4个轮子速度，钳子关闭与否
         self.cfg["env"]["numActions"] = 4
-        
+        self.gripper_length = 0.25
         self.states = {}
         self.link_handles = {}
         self.joint_handles = {}
@@ -69,11 +68,15 @@ class Robomaster(VecTask):
         self._contact_forces = None     # Contact forces in sim
         # self._effort_control = None         # Torque actions
         self._vel_control = None 
+        self._dof_control = None 
         self.up_axis = "z"
         self.up_axis_idx = 2
         
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
-
+        if self.viewer != None:
+            cam_pos = gymapi.Vec3(-0.55, 0.55, 2)
+            cam_target = gymapi.Vec3(0, 0, 0)
+            self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
         self.robomaster_default_dof_pos = torch.zeros(self.num_robomaster_dofs, device=self.device)
         self.initial_root_state = torch.tensor([-0.45, 0, 0.001, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], device=self.device)
         self._ballA_state = torch.zeros(self.num_envs, 13, device=self.device)                # Current state of ballA for the current env
@@ -129,21 +132,25 @@ class Robomaster(VecTask):
         robomaster_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
 
         # 可通过self.joint_handles得到
-        self.control_idx = torch.tensor([0, 1, 2, 18, 34, 50], dtype=torch.long)
+        self.vel_control_idx = torch.tensor([2, 18, 34, 50], dtype=torch.long)
+        self.dof_control_idx = torch.tensor([0, 1], dtype=torch.long)
         robomaster_props = self.gym.get_asset_rigid_shape_properties(robomaster_asset)
         for p in robomaster_props:
             p.friction = 1.0
             p.torsion_friction = 1.0
-            p.restitution = 0.8
+            p.restitution = 0.2
         self.gym.set_asset_rigid_shape_properties(robomaster_asset, robomaster_props)
 
 
 
-        self.ballA_size = 0.030
+        self.ballA_size = 0.025
 
         # Create ballA asset
         ballA_opts = gymapi.AssetOptions()
         ballA_opts.disable_gravity = False
+        ballA_opts.density = 1
+        ballA_opts.linear_damping = 1
+        ballA_opts.angular_damping = 1
         ballA_asset = self.gym.create_sphere(self.sim, self.ballA_size, ballA_opts)
         ballA_color = gymapi.Vec3(0.6, 0.1, 0.0)
 
@@ -152,20 +159,27 @@ class Robomaster(VecTask):
         self.num_robomaster_dofs = self.gym.get_asset_dof_count(robomaster_asset)
         robomaster_dof_props = self.gym.get_asset_dof_properties(robomaster_asset)
         for i in range(self.num_robomaster_dofs):
-            
-            robomaster_dof_props['driveMode'][i] = gymapi.DOF_MODE_VEL if (i in self.control_idx) else gymapi.DOF_MODE_NONE
-            robomaster_dof_props['stiffness'][i] = 0
-            robomaster_dof_props['damping'][i] = 600
-
+            if i in self.vel_control_idx:
+                robomaster_dof_props['driveMode'][i] = gymapi.DOF_MODE_VEL
+                robomaster_dof_props['stiffness'][i] = 0
+                robomaster_dof_props['damping'][i] = 600
+            elif i in self.dof_control_idx:
+                robomaster_dof_props['driveMode'][i] = gymapi.DOF_MODE_POS
+                robomaster_dof_props['stiffness'][i] = 600
+                robomaster_dof_props['damping'][i] = 600
+            else:
+                robomaster_dof_props['driveMode'][i] = gymapi.DOF_MODE_NONE
+                robomaster_dof_props['stiffness'][i] = 0
+                robomaster_dof_props['damping'][i] = 0
         # Define start pose for robomaster
         robomaster_start_pose = gymapi.Transform()
-        robomaster_start_pose.p = gymapi.Vec3(-0.45, 0.0, 0)
+        robomaster_start_pose.p = gymapi.Vec3(-0.2, 0.0, 0)
         robomaster_start_pose.r = gymapi.Quat(0.0, 0.0, 0, 1.0)
 
 
         # Define start pose for balls (doesn't really matter since they're get overridden during reset() anyways)
         ballA_start_pose = gymapi.Transform()
-        ballA_start_pose.p = gymapi.Vec3(-1.0, 0.0, 0.0)
+        ballA_start_pose.p = gymapi.Vec3(0, 0.0, 0.0)
         ballA_start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
 
@@ -197,8 +211,8 @@ class Robomaster(VecTask):
         env_ptr = self.envs[0]
         robomaster_handle = 0
         self.link_handles = {
-            "left_gripper_link": self.gym.find_actor_rigid_body_handle(env_ptr, robomaster_handle, "left_gripper_link_7"),
-            "right_gripper_link": self.gym.find_actor_rigid_body_handle(env_ptr, robomaster_handle, "right_gripper_link_7"),
+            "left_gripper_link": self.gym.find_actor_rigid_body_handle(env_ptr, robomaster_handle, "left_gripper_link_5"),
+            "right_gripper_link": self.gym.find_actor_rigid_body_handle(env_ptr, robomaster_handle, "right_gripper_link_5"),
         }
         self.joint_handles = {
             'left_gripper_joint':self.gym.find_actor_dof_handle(env_ptr, robomaster_handle, "left_gripper_joint_1"),
@@ -233,14 +247,11 @@ class Robomaster(VecTask):
         # Initialize actions
         # self._effort_control = torch.zeros((self.num_envs, self.num_robomaster_dofs), dtype=torch.float, device=self.device)
         self._vel_control = torch.zeros((self.num_envs, self.num_robomaster_dofs), dtype=torch.float, device=self.device)
+        self._dof_control = torch.zeros((self.num_envs, self.num_robomaster_dofs), dtype=torch.float, device=self.device)
         # Initialize control
         self._global_indices = torch.arange(self.num_envs * 2, dtype=torch.int32,
                                            device=self.device).view(self.num_envs, -1)
         
-    
-    
-
-
 
     def compute_reward(self):
         self.rew_buf[:], self.reset_buf[:] = compute_robomaster_reward(
@@ -252,17 +263,16 @@ class Robomaster(VecTask):
         robomaster_pos = torch.cat((self._root_state[:, 0,:2],self._root_state[:, 0, 6].view(-1, 1)),1)
         robomaster_vel = torch.cat((self._root_state[:, 0,7:9],self._root_state[:, 0, -1].view(-1, 1)),1)
         gripper_dof_pos = self._dof_pos[:, :2]
-        gripper_pos = torch.cat((self._eef_lf_state, self._eef_rf_state), 1)
+        gripper_pos = (self._eef_lf_state+self._eef_rf_state)/2
         ballA_pos = self._ballA_state[:, :2]
         
         ballA_vel = self._ballA_state[:, 7:9]
         # ballA_to_ballB_pos = self._ballB_state[:, :2] - self._ballA_state[:, :2]
-        self.obs_buf = torch.cat([robomaster_pos, robomaster_vel, gripper_dof_pos, gripper_pos, ballA_pos, ballA_vel], dim=-1)
+        self.obs_buf = torch.cat([robomaster_pos, robomaster_vel, gripper_dof_pos, ballA_pos - gripper_pos], dim=-1)
         return self.obs_buf
 
 
     def reset_idx(self, env_ids):
-        env_ids_int32 = env_ids.to(dtype=torch.int32)
         # Reset balls, sampling ball B first, then A
         self._reset_init_ball_state(env_ids=env_ids)
         self._root_state[env_ids, 0] = self._reset_robomaster_state(env_ids)
@@ -280,6 +290,7 @@ class Robomaster(VecTask):
         # NOTE: Task takes care of actually propagating these controls in sim using the SimActions API
         # self._effort_control[env_ids, :] = torch.zeros_like(pos)
         self._vel_control[env_ids, :] = torch.zeros_like(pos)
+        self._dof_control[env_ids, :] = torch.zeros_like(pos)
         # Deploy updates
         multi_env_ids_int32 = self._global_indices[env_ids, 0].flatten()
         # self.gym.set_dof_actuation_force_tensor_indexed(self.sim,
@@ -311,10 +322,12 @@ class Robomaster(VecTask):
             env_ids = torch.arange(start=0, end=self.num_envs, device=self.device, dtype=torch.long)
         num_resets = len(env_ids)
         state = torch.zeros(num_resets, 13, device=self.device)
-        state[:,:2] = -0.4*(torch.rand((num_resets, 2), device=self.device, dtype=torch.float32))
+        state[:,:2] = 0.4*(torch.rand((num_resets, 2), device=self.device, dtype=torch.float32))
+        # state[:,:2] = torch.tensor([-0.25, 0], device=self.device, dtype=torch.float32)
         state[:,2] = 0
         # state[:, 5:7] = (torch.rand((num_resets, 2), device=self.device, dtype=torch.float32)-0.5).squeeze()
-        state[:, 6] = 1
+        state[:, 6] = 2*(torch.rand((num_resets), device=self.device, dtype=torch.float32)-0.5)
+        state[:, 5] = torch.sqrt(1 - state[:, 6]**2)
         return state
     
     def _reset_init_ball_state(self, env_ids):
@@ -329,7 +342,7 @@ class Robomaster(VecTask):
         ballA_state = torch.zeros(num_resets, 13, device=self.device)
         ballA_state[:, 2] = ball_heights + 0.001
         ballA_state[:, 6] = 1.0
-        ballA_state[:, :2] = torch.tensor([0.1, 0.1], device=self.device, dtype=torch.float32)+0*(torch.rand(ballA_state[:, :2].shape, device=self.device, dtype=torch.float32)-0.5)
+        ballA_state[:, :2] = -torch.tensor([0.1, 0.1], device=self.device, dtype=torch.float32)-0.1*(torch.rand(ballA_state[:, :2].shape, device=self.device, dtype=torch.float32))
         self._ballA_state[env_ids, :] = ballA_state
 
     
@@ -350,19 +363,19 @@ class Robomaster(VecTask):
         u_wheel, u_gripper = self.actions[:, :-1], self.actions[:, -1]
         # Control arm (scale value first)
         # u_wheel = 10*torch.ones((self.num_envs, 3), device=self.device, dtype=torch.float32)
-        # u_wheel = torch.tensor([[1, 0, 1]], device=self.device, dtype=torch.float32)
+        # u_wheel = torch.tensor([[0, 0, 0]], device=self.device, dtype=torch.float32)
         # self._effort_control[:, self.control_idx[2:]] = 10*u_wheel.clone()
-        self._vel_control[:, self.control_idx[2:]] = 3*self.mecanum_tranform(u_wheel)
+        self._vel_control[:, self.vel_control_idx] = 3*self.mecanum_tranform(u_wheel)
         u_fingers = torch.ones_like(self._vel_control[:, :2])
-        u_fingers[:, 0] = torch.where(u_gripper >= 0.0, -1, 1)
-        u_fingers[:, 1] = torch.where(u_gripper >= 0.0, 1, -1)
+        u_fingers[:, 0] = u_gripper
+        u_fingers[:, 1] = -u_gripper
         # # Write gripper command to appropriate tensor buffer
         # self._effort_control[:, self.control_idx[:2]] = u_fingers.clone()
-        self._vel_control[:, self.control_idx[:2]] = u_fingers.clone()
+        self._dof_control[:, self.dof_control_idx] = u_fingers.clone()
         # self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self._effort_control))
         # Deploy actions
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(self._vel_control))
-
+        self.gym.set_dof_position_target_tensor(self.sim, gymtorch.unwrap_tensor(self._dof_control))
 
     def post_physics_step(self):
         self.progress_buf += 1
@@ -393,8 +406,8 @@ def compute_robomaster_reward(
     ballA_vel = _root_state[:, 1, 7:9]
     # ballB_pos =  _root_state[:, 2, :2]
     norm_1 = torch.norm(ballA_pos - eef_pos, dim=1)
+    dist_reward1 = torch.tanh(torch.sum((robomaster_vel - ballA_vel) * (ballA_pos - eef_pos), dim=1) / norm_1)
     
-    dist_reward1 = torch.tanh(torch.sum((robomaster_vel - ballA_vel) * (ballA_pos - eef_pos), dim=1)/norm_1)
     # norm_1 = torch.norm(eef_pos, dim=1)
     # dist_reward1 = -torch.tanh(torch.sum(robomaster_vel * eef_pos, dim=1)/norm_1)
 
@@ -402,25 +415,24 @@ def compute_robomaster_reward(
     # print('ball',ballA_pos[0])
     # print('eef',eef_pos[0])
     # print('vel',robomaster_vel[0])
-    # print('reward',dist_reward1[0],'\n')
 
     # norm_2 = torch.norm(ballA_pos, dim=1)
     # dist_reward2 = -torch.tanh(torch.sum(ballA_vel * ballA_pos, dim=1)/norm_2)
     
-    stack_reward = (norm_1 < 0.06)
-    if torch.sum(stack_reward)>0:
+    stack_reward = (norm_1 < 0.01)
+    if torch.sum(stack_reward) > 0:
         print('sucess!')
     penalty1 = (torch.max(torch.abs(robomaster_pos), dim=1)[0]>1)
     penalty2 = (torch.max(torch.abs(ballA_pos), dim=1)[0]>1)
     penalty3 = (torch.max(torch.abs(_root_state[:, 0, 3:5]), dim=1)[0] > 0.3)
     # Compose rewards
-
-    rewards = torch.where(stack_reward + penalty1 + penalty2 + penalty3 > 0,
-                          reward_settings["r_stack_scale"] * (stack_reward),
-                          reward_settings["r_dist_scale"] * (dist_reward1) )
+    rewards = stack_reward
+    # rewards = torch.where(stack_reward + penalty1 + penalty2 + penalty3 > 0,
+    #                       reward_settings["r_stack_scale"] * (stack_reward),
+    #                       reward_settings["r_dist_scale"] * (dist_reward1) )
     # rewards = reward_settings["r_stack_scale"] * (stack_reward- penalty1 - penalty2) + reward_settings["r_dist_scale"] * dist_reward1 + reward_settings["r_align_scale"] * dist_reward2 
 
     # Compute resets
-    reset_buf = torch.where((progress_buf >= max_episode_length - 1) | (stack_reward > 0) | (penalty1 > 0) | (penalty2 > 0) | (penalty3 > 1), torch.ones_like(reset_buf), reset_buf)
+    reset_buf = torch.where((progress_buf >= max_episode_length - 1) | (stack_reward > 0) | (penalty1 > 0) | (penalty2 > 0) | (penalty3 > 0), torch.ones_like(reset_buf), reset_buf)
     
     return rewards, reset_buf

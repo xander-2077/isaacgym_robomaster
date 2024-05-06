@@ -1,6 +1,5 @@
 params:
   seed: ${...seed}
-
   algo:
     name: a2c_continuous
 
@@ -21,9 +20,8 @@ params:
           name: const_initializer
           val: 0
         fixed_sigma: True
-
     mlp:
-      units: [64, 32]
+      units: [256, 128, 64]
       activation: elu
       d2rl: False
 
@@ -36,7 +34,7 @@ params:
   load_path: ${...checkpoint} # path to the checkpoint to load
 
   config:
-    name: ${resolve_default:Robomaster,${....experiment}}
+    name: ${resolve_default:Apollo,${....experiment}}
     full_experiment_name: ${.name}
     env_name: rlgpu
     multi_gpu: ${....multi_gpu}
@@ -55,8 +53,8 @@ params:
     lr_schedule: adaptive
     schedule_type: standard
     kl_threshold: 0.008
-    score_to_win: 10000
-    max_epochs: ${resolve_default:10000,${....max_iterations}}
+    score_to_win: 1000
+    max_epochs: ${resolve_default:1000,${....max_iterations}}
     save_best_after: 200
     save_frequency: 100
     print_stats: True
