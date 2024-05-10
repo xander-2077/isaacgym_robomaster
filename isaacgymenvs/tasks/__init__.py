@@ -47,9 +47,8 @@ from .allegro_hand import AllegroHand
 from .dextreme.allegro_hand_dextreme import AllegroHandDextremeManualDR, AllegroHandDextremeADR
 from .trifinger import Trifinger
 from .robomaster_move import Robomaster
-from .twip import Twip
-from .flywheel_pendulum import FlywheelPendulum
 from .apollo import Apollo
+from .darwin import Darwin
 
 from .allegro_kuka.allegro_kuka_reorientation import AllegroKukaReorientation
 from .allegro_kuka.allegro_kuka_regrasping import AllegroKukaRegrasping
@@ -116,7 +115,6 @@ isaacgym_task_map = {
     "ShadowHand": ShadowHand,
     "Trifinger": Trifinger,
     "Robomaster": Robomaster,
-    "Twip": Twip,
-    "FlywheelPendulum": FlywheelPendulum,
     "Apollo":Apollo,
+    "Darwin":Darwin,
 }

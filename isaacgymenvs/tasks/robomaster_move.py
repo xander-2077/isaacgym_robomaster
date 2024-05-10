@@ -143,7 +143,7 @@ class Robomaster(VecTask):
 
 
 
-        self.ballA_size = 0.025
+        self.ballA_size = 0.03
 
         # Create ballA asset
         ballA_opts = gymapi.AssetOptions()
@@ -190,11 +190,11 @@ class Robomaster(VecTask):
             # create env instance
             env_ptr = self.gym.create_env(self.sim, lower, upper, num_per_row)
 
-            self.robomaster_actor = self.gym.create_actor(env_ptr, robomaster_asset, robomaster_start_pose, "robomaster", i, 2, 0)
+            self.robomaster_actor = self.gym.create_actor(env_ptr, robomaster_asset, robomaster_start_pose, "robomaster", i, 1, 0)
             self.gym.set_actor_dof_properties(env_ptr, self.robomaster_actor, robomaster_dof_props)
 
             # Create balls
-            self._ballA_id = self.gym.create_actor(env_ptr, ballA_asset, ballA_start_pose, "ballA", i, 1, 0)
+            self._ballA_id = self.gym.create_actor(env_ptr, ballA_asset, ballA_start_pose, "ballA", i, 2, 0)
             # self._ballB_id = self.gym.create_actor(env_ptr, ballB_asset, ballB_start_pose, "ballB", i, 3, 0)
             # Set colors
             self.gym.set_rigid_body_color(env_ptr, self._ballA_id, 0, gymapi.MESH_VISUAL, ballA_color)
@@ -265,9 +265,7 @@ class Robomaster(VecTask):
         gripper_dof_pos = self._dof_pos[:, :2]
         gripper_pos = (self._eef_lf_state+self._eef_rf_state)/2
         ballA_pos = self._ballA_state[:, :2]
-        
         ballA_vel = self._ballA_state[:, 7:9]
-        # ballA_to_ballB_pos = self._ballB_state[:, :2] - self._ballA_state[:, :2]
         self.obs_buf = torch.cat([robomaster_pos, robomaster_vel, gripper_dof_pos, ballA_pos - gripper_pos], dim=-1)
         return self.obs_buf
 
@@ -322,12 +320,13 @@ class Robomaster(VecTask):
             env_ids = torch.arange(start=0, end=self.num_envs, device=self.device, dtype=torch.long)
         num_resets = len(env_ids)
         state = torch.zeros(num_resets, 13, device=self.device)
-        state[:,:2] = 0.4*(torch.rand((num_resets, 2), device=self.device, dtype=torch.float32))
-        # state[:,:2] = torch.tensor([-0.25, 0], device=self.device, dtype=torch.float32)
+        # state[:,:2] = 0.4*(torch.rand((num_resets, 2), device=self.device, dtype=torch.float32))
+        state[:,:2] = torch.tensor([0, 0], device=self.device, dtype=torch.float32)
         state[:,2] = 0
         # state[:, 5:7] = (torch.rand((num_resets, 2), device=self.device, dtype=torch.float32)-0.5).squeeze()
-        state[:, 6] = 2*(torch.rand((num_resets), device=self.device, dtype=torch.float32)-0.5)
-        state[:, 5] = torch.sqrt(1 - state[:, 6]**2)
+        # state[:, 6] = 2*(torch.rand((num_resets), device=self.device, dtype=torch.float32)-0.5)
+        state[:, 6] = 1
+        # state[:, 5] = torch.sqrt(1 - state[:, 6]**2)
         return state
     
     def _reset_init_ball_state(self, env_ids):
@@ -342,7 +341,9 @@ class Robomaster(VecTask):
         ballA_state = torch.zeros(num_resets, 13, device=self.device)
         ballA_state[:, 2] = ball_heights + 0.001
         ballA_state[:, 6] = 1.0
-        ballA_state[:, :2] = -torch.tensor([0.1, 0.1], device=self.device, dtype=torch.float32)-0.1*(torch.rand(ballA_state[:, :2].shape, device=self.device, dtype=torch.float32))
+        theta = torch.rand(num_resets, device=self.device, dtype=torch.float32).view(-1, 1)*3.1416*2
+        ballA_state[:, :2] = 0.5 * torch.cat((torch.abs(torch.cos(theta)), torch.sin(theta)), dim=1)
+        # ballA_state[:, :2] = -torch.tensor([0.1, 0.1], device=self.device, dtype=torch.float32)-0.1*(torch.rand(ballA_state[:, :2].shape, device=self.device, dtype=torch.float32))
         self._ballA_state[env_ids, :] = ballA_state
 
     
@@ -367,6 +368,10 @@ class Robomaster(VecTask):
         # self._effort_control[:, self.control_idx[2:]] = 10*u_wheel.clone()
         self._vel_control[:, self.vel_control_idx] = 3*self.mecanum_tranform(u_wheel)
         u_fingers = torch.ones_like(self._vel_control[:, :2])
+        # finger_pos = torch.where(u_gripper > 0, torch.ones_like(u_gripper), -torch.ones_like(u_gripper))
+        # # finger_pos = 1
+        # u_fingers[:, 0] = -finger_pos
+        # u_fingers[:, 1] = finger_pos
         u_fingers[:, 0] = u_gripper
         u_fingers[:, 1] = -u_gripper
         # # Write gripper command to appropriate tensor buffer
@@ -406,11 +411,13 @@ def compute_robomaster_reward(
     ballA_vel = _root_state[:, 1, 7:9]
     # ballB_pos =  _root_state[:, 2, :2]
     norm_1 = torch.norm(ballA_pos - eef_pos, dim=1)
-    dist_reward1 = torch.tanh(torch.sum((robomaster_vel - ballA_vel) * (ballA_pos - eef_pos), dim=1) / norm_1)
-    
+    dist_reward1 = -torch.tanh(norm_1)
+    # dist_reward1 = torch.tanh(torch.sum((robomaster_vel - ballA_vel) * (ballA_pos - eef_pos), dim=1) / norm_1) * 0
+    norm_2 = torch.norm(ballA_pos - robomaster_pos[:, :2], dim=1)
+    dist_reward2 = torch.tanh(norm_2 - norm_1 - 0.25) * 0
     # norm_1 = torch.norm(eef_pos, dim=1)
     # dist_reward1 = -torch.tanh(torch.sum(robomaster_vel * eef_pos, dim=1)/norm_1)
-
+    
     # print('robomaster',robomaster_pos[0])
     # print('ball',ballA_pos[0])
     # print('eef',eef_pos[0])
@@ -419,17 +426,17 @@ def compute_robomaster_reward(
     # norm_2 = torch.norm(ballA_pos, dim=1)
     # dist_reward2 = -torch.tanh(torch.sum(ballA_vel * ballA_pos, dim=1)/norm_2)
     
-    stack_reward = (norm_1 < 0.01)
+    stack_reward = (norm_1 < 0.03)
     if torch.sum(stack_reward) > 0:
         print('sucess!')
     penalty1 = (torch.max(torch.abs(robomaster_pos), dim=1)[0]>1)
     penalty2 = (torch.max(torch.abs(ballA_pos), dim=1)[0]>1)
     penalty3 = (torch.max(torch.abs(_root_state[:, 0, 3:5]), dim=1)[0] > 0.3)
     # Compose rewards
-    rewards = stack_reward
-    # rewards = torch.where(stack_reward + penalty1 + penalty2 + penalty3 > 0,
-    #                       reward_settings["r_stack_scale"] * (stack_reward),
-    #                       reward_settings["r_dist_scale"] * (dist_reward1) )
+    # rewards = stack_reward
+    rewards = torch.where(stack_reward + penalty1 + penalty2 + penalty3 > 0,
+                          reward_settings["r_stack_scale"] * (stack_reward),
+                          reward_settings["r_dist_scale"] * (dist_reward1 + dist_reward2) )
     # rewards = reward_settings["r_stack_scale"] * (stack_reward- penalty1 - penalty2) + reward_settings["r_dist_scale"] * dist_reward1 + reward_settings["r_align_scale"] * dist_reward2 
 
     # Compute resets
