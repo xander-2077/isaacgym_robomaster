@@ -84,7 +84,7 @@ class Darwin(VecTask):
 
         dof_force_tensor = self.gym.acquire_dof_force_tensor(self.sim)
         self.dof_force_tensor = gymtorch.wrap_tensor(dof_force_tensor).view(self.num_envs, self.num_dof)
-
+        self.force = torch.zeros((self.num_envs, self.num_dof), device=self.device, dtype=torch.float)
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_dof_force_tensor(self.sim)
@@ -153,7 +153,7 @@ class Darwin(VecTask):
         asset_options.angular_damping = 0.01
         asset_options.max_angular_velocity = 100.0
         asset_options.fix_base_link = False
-        asset_options.disable_gravity = False
+        asset_options.disable_gravity = True
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
         
         darwin_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
@@ -174,7 +174,7 @@ class Darwin(VecTask):
         self.num_joints = self.gym.get_asset_joint_count(darwin_asset)
 
         start_pose = gymapi.Transform()
-        start_pose.p = gymapi.Vec3(*get_axis_params(0.3, self.up_axis_idx))
+        start_pose.p = gymapi.Vec3(*get_axis_params(0.5, self.up_axis_idx))
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         self.start_rotation = torch.tensor([start_pose.r.x, start_pose.r.y, start_pose.r.z, start_pose.r.w], device=self.device)
@@ -255,7 +255,7 @@ class Darwin(VecTask):
 
         self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
         self.dof_vel[env_ids] = self.dof_vel[env_ids] * 0
-        effort_control = torch.zeros_like(self.dof_pos[env_ids])
+        self.force[env_ids] = torch.zeros_like(self.dof_pos[env_ids])
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.initial_root_states),
@@ -265,10 +265,10 @@ class Darwin(VecTask):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
         
-        # self.gym.set_dof_actuation_force_tensor_indexed(self.sim,
-        #                                                 gymtorch.unwrap_tensor(effort_control),
-        #                                                 gymtorch.unwrap_tensor(env_ids_int32),
-        #                                                 len(env_ids_int32))
+        self.gym.set_dof_actuation_force_tensor_indexed(self.sim,
+                                                        gymtorch.unwrap_tensor(self.force),
+                                                        gymtorch.unwrap_tensor(env_ids_int32),
+                                                        len(env_ids_int32))
 
         to_target = self.targets[env_ids] - self.initial_root_states[env_ids, 0:3]
         to_target[:, self.up_axis_idx] = 0
@@ -280,10 +280,10 @@ class Darwin(VecTask):
 
     def pre_physics_step(self, actions):
         self.actions = actions.to(self.device).clone()
-        forces = self.actions * self.power_scale*100
-        force_tensor = gymtorch.unwrap_tensor(forces)
+        self.force = self.actions * self.power_scale*100
+        force_tensor = gymtorch.unwrap_tensor(self.force)
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
-
+        
     def post_physics_step(self):
         self.progress_buf += 1
         self.randomize_buf += 1
