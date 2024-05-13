@@ -254,8 +254,8 @@ class Apollo(VecTask):
 
 
     def compute_observations(self, env_ids=None):
-        apollo1_pos = torch.cat((self._root_state[:, 0,:2],self._root_state[:, 0, 6].view(-1, 1)),1)
-        apollo1_vel = torch.cat((self._root_state[:, 0,7:9],self._root_state[:, 0, -1].view(-1, 1)),1)
+        apollo1_pos = torch.cat((self._root_state[:, 0,:2], self._root_state[:, 0, 6].view(-1, 1)),1)
+        apollo1_vel = torch.cat((self._root_state[:, 0,7:9], self._root_state[:, 0, -1].view(-1, 1)),1)
 
         apollo2_pos = torch.cat((self._root_state[:, 1,:2],self._root_state[:, 1, 6].view(-1, 1)),1)
         apollo2_vel = torch.cat((self._root_state[:, 1,7:9],self._root_state[:, 1, -1].view(-1, 1)),1)
@@ -269,14 +269,6 @@ class Apollo(VecTask):
     def reset_idx(self, env_ids):
 
         self._root_state[env_ids] = self._reset_apollo_state(env_ids)
-
-        # Reset the internal obs accordingly
-        # self._dof_pos[env_ids, :] = pos.clone()
-        # self._dof_vel[env_ids, :] = torch.zeros_like(self._dof_vel[env_ids])
-
-        # Set any position control to the current position, and any vel / effort control to be 0
-        # NOTE: Task takes care of actually propagating these controls in sim using the SimActions API
-        # self._effort_control[env_ids, :] = torch.zeros_like(pos)
         
         # Deploy updates
         multi_env_ids_int32 = self._global_indices[env_ids].flatten()
@@ -308,12 +300,15 @@ class Apollo(VecTask):
             env_ids = torch.arange(start=0, end=self.num_envs, device=self.device, dtype=torch.long)
         num_resets = len(env_ids)
         state = torch.zeros((num_resets, 3, 13), device=self.device, dtype=torch.float)
-        state[:, 0, :2] = -0.5 - 0.5 * (torch.rand((num_resets, 2), device=self.device, dtype=torch.float32))
-        state[:, 1, :2] = 0.5 + 0.5 * (torch.rand((num_resets, 2), device=self.device, dtype=torch.float32))
-        state[:, 2, :2] = 0 + 0.2 *(torch.rand((num_resets, 2), device=self.device, dtype=torch.float32))
-        state[:, :, 2] = 0
+        state[:, 0, 1] = -0.8 - 0.5 * (torch.rand((num_resets), device=self.device, dtype=torch.float32))
+        state[:, 0, 0] = 0.5 * (torch.rand((num_resets), device=self.device, dtype=torch.float32)-0.5)
+        state[:, 1, 1] = 0.8 + 0.5 * (torch.rand((num_resets), device=self.device, dtype=torch.float32))
+        state[:, 1, 0] = 0.5 * (torch.rand((num_resets), device=self.device, dtype=torch.float32)-0.5)
+        state[:, 2, 0] = 0.5 * (torch.rand((num_resets), device=self.device, dtype=torch.float32)-0.7)
         # state[:, 5:7] = (torch.rand((num_resets, 2), device=self.device, dtype=torch.float32)-0.5).squeeze()
-        state[:,:, 6] = 1
+        state[:,1:3, 6] = 1
+        state[:,0, 6] = -2*(torch.rand((num_resets), device=self.device, dtype=torch.float32)-0.5)
+        state[:,0, 5] = torch.sqrt(1 - state[:,0, 6]**2)
         return state
     
 
@@ -329,12 +324,12 @@ class Apollo(VecTask):
         self._vel_control[:, 0, self.vel_control_idx] = 10*u_wheel
         self._pos_control[:, 0, self.pos_control_idx] = torch.cat((u_steer, u_steer), dim=1)
         u_wheel1 = torch.ones((self.num_envs, 2), device=self.device, dtype=torch.float32)
-        u_steer1 = torch.ones((self.num_envs, 2), device=self.device, dtype=torch.float32)
-        self._vel_control[:, 1, self.vel_control_idx] = 3*u_wheel1
+        u_steer1 = torch.zeros((self.num_envs, 2), device=self.device, dtype=torch.float32)
+        self._vel_control[:, 1, self.vel_control_idx] = 2*u_wheel1
         self._pos_control[:, 1, self.pos_control_idx] = u_steer1.clone()
 
-        u_wheel2 = -torch.ones((self.num_envs, 2), device=self.device, dtype=torch.float32)
-        u_steer2 = torch.ones((self.num_envs, 2), device=self.device, dtype=torch.float32)
+        u_wheel2 = torch.ones((self.num_envs, 2), device=self.device, dtype=torch.float32)
+        u_steer2 = torch.zeros((self.num_envs, 2), device=self.device, dtype=torch.float32)
         self._vel_control[:, 2, self.vel_control_idx] = 3*u_wheel2
         self._pos_control[:, 2, self.pos_control_idx] = u_steer2.clone()
 

@@ -919,7 +919,7 @@
     <parent link="gripper_m_link"/>
     <child link="left_gripper_link_1"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="10" lower="-0.4" upper="0" velocity="5"/>
+    <limit effort="20" lower="-0.4" upper="0" velocity="20"/>
   </joint>
   <joint name="left_gripper_joint_2" type="fixed">
     <origin rpy="0 0 0" xyz="0.0213495 0.0130363 0"/>
@@ -976,7 +976,7 @@
     <parent link="gripper_m_link"/>
     <child link="right_gripper_link_1"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="10" lower="0" upper="0.4" velocity="5"/>
+    <limit effort="20" lower="0" upper="0.4" velocity="20"/>
   </joint>
   <joint name="right_gripper_joint_2" type="fixed">
     <origin rpy="0 0 0" xyz="0.0213495 -0.0130363 0"/>
