@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<robot name="football">
+  <link name="football_chassis">
+    <inertial>
+      <mass value="0.0010"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="3.2e-7" ixy="0" ixz="0" iyy="3.2e-7" iyz="0" izz="3.2e-7"/>
+    </inertial>
+    <collision name="football__collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+      <surface>
+      <friction>
+        <torsional>
+          <coefficient>0.01</coefficient>
+          <patch_radius>0.0001</patch_radius>
+        </torsional>
+        <ode>
+          <mu>50</mu>
+          <mu2>25</mu2>
+        </ode>
+      </friction>
+      <bounce>
+        <restitution_coefficient>0.2</restitution_coefficient>
+        <threshold>1</threshold>
+      </bounce>
+      <contact>
+        <ode>
+          <max_vel>0.00001</max_vel>
+          <min_depth>0.00001</min_depth>
+        </ode>
+      </contact>
+    </surface>
+  </collision>
+  <visual name="football__visual">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="../meshes/ball.dae" scale="0.03 0.03 0.03"/>
+    </geometry>
+  </visual>
+  </link>
+
+</robot>

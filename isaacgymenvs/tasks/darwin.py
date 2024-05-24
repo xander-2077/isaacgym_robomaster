@@ -71,7 +71,7 @@ class Darwin(VecTask):
 
         if self.viewer != None:
             cam_pos = gymapi.Vec3(25.0, 12.5, 1.2)
-            cam_target = gymapi.Vec3(22.5, 12.5, 0.0)
+            cam_target = gymapi.Vec3(10.5, 5, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
         # get gym GPU state tensors
@@ -189,7 +189,7 @@ class Darwin(VecTask):
             env_ptr = self.gym.create_env(
                 self.sim, lower, upper, num_per_row
             )
-            handle = self.gym.create_actor(env_ptr, darwin_asset, start_pose, "darwin", i, 0, 0)
+            handle = self.gym.create_actor(env_ptr, darwin_asset, start_pose, "darwin", i, 1, 0)
 
             self.gym.enable_actor_dof_force_sensors(env_ptr, handle)
 
@@ -280,7 +280,7 @@ class Darwin(VecTask):
 
     def pre_physics_step(self, actions):
         self.actions = actions.to(self.device).clone()
-        forces = self.actions * self.power_scale*100
+        forces = self.actions * self.power_scale*20
         force_tensor = gymtorch.unwrap_tensor(forces)
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
 
