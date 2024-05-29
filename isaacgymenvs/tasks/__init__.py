@@ -46,7 +46,8 @@ from .shadow_hand import ShadowHand
 from .allegro_hand import AllegroHand
 from .dextreme.allegro_hand_dextreme import AllegroHandDextremeManualDR, AllegroHandDextremeADR
 from .trifinger import Trifinger
-from .robomaster_move import Robomaster
+from .robomaster.robomaster_move import Robomaster
+from .robomaster.robomaster_full import RobomasterFull
 from .apollo import Apollo
 from .darwin import Darwin
 
@@ -115,6 +116,7 @@ isaacgym_task_map = {
     "ShadowHand": ShadowHand,
     "Trifinger": Trifinger,
     "Robomaster": Robomaster,
+    "RobomasterFull": RobomasterFull,
     "Apollo":Apollo,
     "Darwin":Darwin,
 }

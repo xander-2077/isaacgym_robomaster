@@ -369,8 +369,7 @@
       </geometry>
     </collision>
   </link>
-  <!-- <link name="rod_1_dummy">
-    </link> -->
+
   <link name="rod_1_link">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.0477809 0 0.0272644"/>
@@ -391,13 +390,7 @@
       </geometry>
     </collision>
   </link>
-  <!-- <link name="rod_2_dummy">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.001"/>
-        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-      </inertial>
-    </link> -->
+
   <link name="rod_2_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0.0011528 0 0.0549123"/>
@@ -418,13 +411,7 @@
       </geometry>
     </collision>
   </link>
-  <!-- <link name="rod_3_dummy">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.001"/>
-        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-      </inertial>
-    </link> -->
+
   <link name="rod_3_link">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.0003574 9.5e-06 0.0001674"/>
@@ -465,15 +452,7 @@
       </geometry>
     </collision>
   </link>
-  <!-- <link name="triangle_1_dummy">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.001"/>
-        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-      </inertial>
-    </link> -->
-  <!-- <link name="triangle_2_dummy">
-    </link> -->
+
   <link name="triangle_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0.1417841 0.0321051 -0.1257179"/>
@@ -494,8 +473,8 @@
       </geometry>
     </collision>
   </link>
-  <joint name="arm_1_joint" type="fixed">
-    <origin rpy="0 1.3 0" xyz="0.0103961 -0.0255713 0.030741"/>
+  <joint name="arm_1_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0.0103961 -0.0255713 0.030741"/>
     <parent link="arm_base_link"/>
     <child link="arm_1_link"/>
     <axis xyz="0.0 1.0 0"/>
@@ -506,35 +485,27 @@
       <parent link="arm_2_link"/>
       <child link="arm_2_dummy"/>
     </joint> -->
-  <joint name="arm_2_joint" type="fixed">
-    <origin rpy="0 -0.5 0" xyz="0.0018704 0.0438659 0.1210238"/>
+  <joint name="arm_2_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0.0018704 0.0438659 0.1210238"/>
     <parent link="arm_1_link"/>
     <child link="arm_2_link"/>
     <axis xyz="0.0 1.0 0"/>
     <limit effort="1" velocity="1"/>
     <mimic joint="rod_3_joint" multiplier="-1.0" offset="0.0"/>
   </joint>
-  <!-- <joint name="arm_base_attachment_joint" type="fixed">
-      <origin xyz="0 0.0010384 0.0906477" rpy="0 0 0"/>
-      <parent link="base_link"/>
-      <child link="arm_base_attachment_link"/>
-    </joint> -->
+
   <joint name="arm_base_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0.0010384 0.0906477"/>
     <parent link="chassis_base_link"/>
     <child link="arm_base_link"/>
   </joint>
-  <!-- <joint name="attachement_link" type="floating">
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <parent link="arm_base_link"/>
-      <child link="attachement_link"/>
-    </joint> -->
+
   <joint name="end_point_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0110125 -0.0270264 -0.0103816"/>
     <parent link="endpoint_bracket_link"/>
     <child link="end_point_link"/>
   </joint>
-  <joint name="endpoint_bracket_joint" type="fixed">
+  <joint name="endpoint_bracket_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0.1058557 0.006752 -0.0561093"/>
     <parent link="arm_2_link"/>
     <child link="endpoint_bracket_link"/>
@@ -542,11 +513,7 @@
     <mimic joint="rod_joint" multiplier="-1.0" offset="0.0"/>
     <!-- <limit effort="0" velocity="0"/> -->
   </joint>
-  <!-- <joint name="rod_1_dummy" type="floating">
-      <origin xyz="-0.1048751 0 0.0582511" rpy="0 0 0"/>
-      <parent link="rod_1_link"/>
-      <child link="rod_1_dummy"/>
-    </joint> -->
+
   <joint name="rod_1_joint" type="fixed">
     <origin rpy="0 -0.021293 0" xyz="0.0134583 -0.0540971 0.0213068"/>
     <parent link="endpoint_bracket_link"/>
@@ -554,51 +521,33 @@
     <axis xyz="0.0 1.0 0"/>
     <mimic joint="rod_joint" multiplier="1.0" offset="0.0"/>
   </joint>
-  <!-- <joint name="rod_2_dummy" type="floating">
-      <origin xyz="0.0036225 0 0.1198535" rpy="0 0 0"/>
-      <parent link="rod_2_link"/>
-      <child link="rod_2_dummy"/>
-    </joint> -->
+
   <joint name="rod_2_joint" type="fixed">
-    <origin rpy="0 1.3 0" xyz="-0.0224276 -0.0290701 0.0554782"/>
+    <origin rpy="0 0 0" xyz="-0.0224276 -0.0290701 0.0554782"/>
     <parent link="arm_base_link"/>
     <child link="rod_2_link"/>
     <axis xyz="0.0 1.0 0"/>
     <mimic joint="arm_1_joint" multiplier="1.0" offset="0.0"/>
     <!-- <limit effort="0" velocity="0"/> -->
   </joint>
-  <!-- <joint name="rod_3_dummy" type="floating">
-      <origin xyz="0.0029281 -0.0007404 0.1193638" rpy="0 0 0"/>
-      <parent link="rod_3_link"/>
-      <child link="rod_3_dummy"/>
-    </joint> -->
+
   <joint name="rod_3_joint" type="fixed">
-    <origin rpy="0 0.5 0" xyz="-0.042397 0.0004533 0.0223131"/>
+    <origin rpy="0 0 0" xyz="-0.042397 0.0004533 0.0223131"/>
     <parent link="rod_link"/>
     <child link="rod_3_link"/>
     <axis xyz="0.0 1.0 0"/>
     <limit effort="1" lower="-0.34732" upper="1.21475" velocity="1"/>
   </joint>
   <joint name="rod_joint" type="fixed">
-    <origin rpy="0 0.8 0" xyz="0.009805 0.0214241 0.0319234"/>
+    <origin rpy="0 0 0" xyz="0.009805 0.0214241 0.0319234"/>
     <parent link="arm_base_link"/>
     <child link="rod_link"/>
     <axis xyz="0.0 1.0 0"/>
     <limit effort="1" lower="-0.79936" upper="1.73137" velocity="1"/>
   </joint>
-  <!-- <joint name="triangle_1_dummy" type="floating">
-      <origin xyz="-0.037193 0 0.0147539" rpy="0 0 0"/>
-      <parent link="triangle_link"/>
-      <child link="triangle_1_dummy"/>
-    </joint>
 
-    <joint name="triangle_2_dummy" type="floating">
-      <origin xyz="0.0077464 6.66e-05 0.0235099" rpy="0 0 0"/>
-      <parent link="triangle_link"/>
-      <child link="triangle_2_dummy"/>
-    </joint> -->
   <joint name="triangle_joint" type="fixed">
-    <origin rpy="0 -1.1 0" xyz="0.0020224 -0.007103 0.1212334"/>
+    <origin rpy="0 0 0" xyz="0.0020224 -0.007103 0.1212334"/>
     <parent link="arm_1_link"/>
     <child link="triangle_link"/>
     <axis xyz="0.0 1.0 0"/>
@@ -642,13 +591,7 @@
       </geometry>
     </collision>
   </link>
-  <!-- <link name="left_gripper_link_3_dummy">
-          <inertial>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-            <mass value="0.001"/>
-            <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-          </inertial>
-        </link> -->
+
   <link name="left_gripper_link_4">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -908,7 +851,7 @@
     <axis xyz="0 0 1.0"/>
     <limit effort="1" lower="-0.4" upper="0" velocity="20"/>
   </joint>
-  <joint name="left_gripper_joint_2" type="fixed">
+  <joint name="left_gripper_joint_2" type="revolute">
     <origin rpy="0 0 0" xyz="0.0213495 0.0130363 0"/>
     <parent link="left_gripper_link_1"/>
     <child link="left_gripper_link_2"/>
@@ -941,12 +884,8 @@
     <axis xyz="0 0 1.0"/>
     <limit effort="1" velocity="1"/>
   </joint>
-  <!-- <joint name="left_gripper_joint_8_dummy" type="fixed">
-          <origin xyz="-0.014742 -0.0167196 -3.77e-05" rpy="0 0 0"/>
-          <parent link="left_gripper_link_7"/>
-          <child link="left_gripper_8_link_dummy"/>
-        </joint> -->
-  <joint name="left_gripper_joint_5" type="fixed">
+
+  <joint name="left_gripper_joint_5" type="revolute">
     <origin rpy="0 0 0" xyz="0.0385916 0.0103143 1.6e-06"/>
     <parent link="left_gripper_link_4"/>
     <child link="left_gripper_link_5"/>
@@ -954,7 +893,7 @@
     <limit effort="1" velocity="1"/>
   </joint>
   <joint name="gripper_joint" type="fixed">
-    <origin rpy="0 -0.8 0" xyz="0.0002793 -0.027026 0.0001815"/>
+    <origin rpy="0 0 0" xyz="0.0002793 -0.027026 0.0001815"/>
     <parent link="endpoint_bracket_link"/>
     <child link="gripper_link"/>
   </joint>
@@ -965,7 +904,7 @@
     <axis xyz="0 0 1.0"/>
     <limit effort="1" lower="0" upper="0.4" velocity="20"/>
   </joint>
-  <joint name="right_gripper_joint_2" type="fixed">
+  <joint name="right_gripper_joint_2" type="revolute">
     <origin rpy="0 0 0" xyz="0.0213495 -0.0130363 0"/>
     <parent link="right_gripper_link_1"/>
     <child link="right_gripper_link_2"/>
@@ -984,7 +923,7 @@
     <axis xyz="0 0 1.0"/>
     <limit effort="1" velocity="1"/>
   </joint>
-  <joint name="right_gripper_joint_5" type="fixed">
+  <joint name="right_gripper_joint_5" type="revolute">
     <origin rpy="0 0 0" xyz="0.0385916 -0.0103143 1.6e-06"/>
     <parent link="right_gripper_link_4"/>
     <child link="right_gripper_link_5"/>
