@@ -370,7 +370,7 @@
     </collision>
   </link>
 
-  <link name="rod_1_link">
+  <!-- <link name="rod_1_link">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.0477809 0 0.0272644"/>
       <mass value="0.012"/>
@@ -472,13 +472,13 @@
         <mesh filename="../meshes/triangle_collision.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
-  </link>
+  </link> -->
   <joint name="arm_1_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0.0103961 -0.0255713 0.030741"/>
     <parent link="arm_base_link"/>
     <child link="arm_1_link"/>
     <axis xyz="0.0 1.0 0"/>
-    <limit effort="1" lower="-0.274" upper="1.384" velocity="1"/>
+    <!-- <limit effort="1" lower="-0.274" upper="1.384" velocity="1"/> -->
   </joint>
   <!-- <joint name="arm_2_dummy" type="floating">
       <origin xyz="-0.0419304 0.0028425 0.0218356" rpy="0 0 0"/>
@@ -490,8 +490,7 @@
     <parent link="arm_1_link"/>
     <child link="arm_2_link"/>
     <axis xyz="0.0 1.0 0"/>
-    <limit effort="1" velocity="1"/>
-    <mimic joint="rod_3_joint" multiplier="-1.0" offset="0.0"/>
+    <!-- <limit effort="1" velocity="1"/> -->
   </joint>
 
   <joint name="arm_base_joint" type="fixed">
@@ -510,11 +509,10 @@
     <parent link="arm_2_link"/>
     <child link="endpoint_bracket_link"/>
     <axis xyz="0.0 1.0 0"/>
-    <mimic joint="rod_joint" multiplier="-1.0" offset="0.0"/>
     <!-- <limit effort="0" velocity="0"/> -->
   </joint>
 
-  <joint name="rod_1_joint" type="fixed">
+  <!-- <joint name="rod_1_joint" type="fixed">
     <origin rpy="0 -0.021293 0" xyz="0.0134583 -0.0540971 0.0213068"/>
     <parent link="endpoint_bracket_link"/>
     <child link="rod_1_link"/>
@@ -528,7 +526,6 @@
     <child link="rod_2_link"/>
     <axis xyz="0.0 1.0 0"/>
     <mimic joint="arm_1_joint" multiplier="1.0" offset="0.0"/>
-    <!-- <limit effort="0" velocity="0"/> -->
   </joint>
 
   <joint name="rod_3_joint" type="fixed">
@@ -552,7 +549,7 @@
     <child link="triangle_link"/>
     <axis xyz="0.0 1.0 0"/>
     <mimic joint="arm_1_joint" multiplier="-1.0" offset="0.0"/>
-  </joint>
+  </joint> -->
 
 
 
@@ -591,7 +588,13 @@
       </geometry>
     </collision>
   </link>
-
+  <!-- <link name="left_gripper_link_3_dummy">
+          <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="0.001"/>
+            <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+          </inertial>
+        </link> -->
   <link name="left_gripper_link_4">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -849,9 +852,10 @@
     <parent link="gripper_m_link"/>
     <child link="left_gripper_link_1"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="1" lower="-0.4" upper="0" velocity="20"/>
+    <limit lower="-0.4" upper="0"/>
+    <!-- <limit effort="1" lower="-0.4" upper="0" velocity="20"/> -->
   </joint>
-  <joint name="left_gripper_joint_2" type="revolute">
+  <joint name="left_gripper_joint_2" type="fixed">
     <origin rpy="0 0 0" xyz="0.0213495 0.0130363 0"/>
     <parent link="left_gripper_link_1"/>
     <child link="left_gripper_link_2"/>
@@ -885,7 +889,7 @@
     <limit effort="1" velocity="1"/>
   </joint>
 
-  <joint name="left_gripper_joint_5" type="revolute">
+  <joint name="left_gripper_joint_5" type="fixed">
     <origin rpy="0 0 0" xyz="0.0385916 0.0103143 1.6e-06"/>
     <parent link="left_gripper_link_4"/>
     <child link="left_gripper_link_5"/>
@@ -902,9 +906,10 @@
     <parent link="gripper_m_link"/>
     <child link="right_gripper_link_1"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="1" lower="0" upper="0.4" velocity="20"/>
+    <limit lower="0" upper="0.4"/>
+    <!-- <limit effort="1" lower="0" upper="0.4" velocity="20"/> -->
   </joint>
-  <joint name="right_gripper_joint_2" type="revolute">
+  <joint name="right_gripper_joint_2" type="fixed">
     <origin rpy="0 0 0" xyz="0.0213495 -0.0130363 0"/>
     <parent link="right_gripper_link_1"/>
     <child link="right_gripper_link_2"/>
@@ -923,7 +928,7 @@
     <axis xyz="0 0 1.0"/>
     <limit effort="1" velocity="1"/>
   </joint>
-  <joint name="right_gripper_joint_5" type="revolute">
+  <joint name="right_gripper_joint_5" type="fixed">
     <origin rpy="0 0 0" xyz="0.0385916 -0.0103143 1.6e-06"/>
     <parent link="right_gripper_link_4"/>
     <child link="right_gripper_link_5"/>
