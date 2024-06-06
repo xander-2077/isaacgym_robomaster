@@ -246,6 +246,7 @@ class VecTask(Env):
 
         self.gym = gymapi.acquire_gym()
 
+        # for randomization
         self.first_randomization = True
         self.original_props = {}
         self.dr_randomizations = {}
@@ -370,7 +371,15 @@ class VecTask(Env):
             Observations, rewards, resets, info
             Observations are dict of observations (currently only one member called 'obs')
         """
-
+        import inspect
+        current_frame = inspect.currentframe()
+        caller_frame = current_frame.f_back
+        caller_code = caller_frame.f_code
+        caller_line_number = caller_frame.f_lineno
+        print(f"File: {caller_code.co_filename}")
+        print(f"Line: {caller_line_number}")
+        print(f"Code: {caller_code.co_name}")
+        import pdb; pdb.set_trace()
         # randomize actions
         if self.dr_randomizations.get('actions', None):
             actions = self.dr_randomizations['actions']['noise_lambda'](actions)
@@ -433,6 +442,17 @@ class VecTask(Env):
         Returns:
             Observation dictionary
         """
+        
+        import inspect
+        current_frame = inspect.currentframe()
+        caller_frame = current_frame.f_back
+        caller_code = caller_frame.f_code
+        caller_line_number = caller_frame.f_lineno
+        print(f"File: {caller_code.co_filename}")
+        print(f"Line: {caller_line_number}")
+        print(f"Code: {caller_code.co_name}")
+        import pdb; pdb.set_trace()
+
         self.obs_dict["obs"] = torch.clamp(self.obs_buf, -self.clip_obs, self.clip_obs).to(self.rl_device)
 
         # asymmetric actor-critic
@@ -446,6 +466,7 @@ class VecTask(Env):
         Returns:
             Observation dictionary, indices of environments being reset
         """
+        import pdb; pdb.set_trace()
         done_env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
         if len(done_env_ids) > 0:
             self.reset_idx(done_env_ids)
@@ -458,7 +479,7 @@ class VecTask(Env):
 
         return self.obs_dict, done_env_ids
 
-    def render(self, mode="rgb_array"):
+    def render(self, mode="rgb_array"):  # 重点看一下
         """Draw the frame to the viewer, and check for keyboard events."""
         if self.viewer:
             # check for window closed
