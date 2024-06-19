@@ -380,7 +380,6 @@ class FrankaCubeStack(VecTask):
         self._root_state = gymtorch.wrap_tensor(_actor_root_state_tensor).view(self.num_envs, -1, 13)
         self._dof_state = gymtorch.wrap_tensor(_dof_state_tensor).view(self.num_envs, -1, 2)
         self._rigid_body_state = gymtorch.wrap_tensor(_rigid_body_state_tensor).view(self.num_envs, -1, 13)
-
         self._q = self._dof_state[..., 0]
         self._qd = self._dof_state[..., 1]
         self._eef_state = self._rigid_body_state[:, self.handles["grip_site"], :]
@@ -455,7 +454,7 @@ class FrankaCubeStack(VecTask):
         self.obs_buf = torch.cat([self.states[ob] for ob in obs], dim=-1)
 
         maxs = {ob: torch.max(self.states[ob]).item() for ob in obs}
-    
+
         return self.obs_buf
 
     def reset_idx(self, env_ids):
@@ -491,7 +490,6 @@ class FrankaCubeStack(VecTask):
         self._effort_control[env_ids, :] = torch.zeros_like(pos)
 
         # Deploy updates
-        print(self._pos_control.shape, self._effort_control.shape, self._dof_state.shape)
         multi_env_ids_int32 = self._global_indices[env_ids, 0].flatten()
         self.gym.set_dof_position_target_tensor_indexed(self.sim,
                                                         gymtorch.unwrap_tensor(self._pos_control),
@@ -630,6 +628,7 @@ class FrankaCubeStack(VecTask):
 
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
+
         # Split arm and gripper command
         u_arm, u_gripper = self.actions[:, :-1], self.actions[:, -1]
 
@@ -650,6 +649,7 @@ class FrankaCubeStack(VecTask):
                                       self.franka_dof_lower_limits[-1].item())
         # Write gripper command to appropriate tensor buffer
         self._gripper_control[:, :] = u_fingers
+
         # Deploy actions
         self.gym.set_dof_position_target_tensor(self.sim, gymtorch.unwrap_tensor(self._pos_control))
         self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self._effort_control))
