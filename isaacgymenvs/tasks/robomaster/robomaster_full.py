@@ -48,7 +48,7 @@ class RobomasterFull(VecTask):
 
         self.cfg["env"]["numObservations"] = 11
 
-        # 4个轮子速度，arm*2,gripper*1
+        # 4个轮子速度，arm*2, gripper*1
         self.cfg["env"]["numActions"] = 7
         self.gripper_length = 0.25
         self.states = {}
@@ -157,28 +157,31 @@ class RobomasterFull(VecTask):
 
         # Create ball asset
         ball_opts = gymapi.AssetOptions()
-        ball_opts.disable_gravity = False
-        ball_opts.linear_damping = 10
-        ball_opts.angular_damping = 10
-        ball_opts.thickness = 0.0001
-        ball_asset_path = os.path.join(ball_asset_root, ball_asset_file)
-        ball_asset_root = os.path.dirname(ball_asset_path)
-        ball_asset_file = os.path.basename(ball_asset_path)
-        ball_asset = self.gym.load_asset(self.sim, ball_asset_root, ball_asset_file, ball_opts)
-        self.ball_size = 0.03
+
+        # ball_opts.disable_gravity = True
+        self.ball_size = 0.04
+        # # ball_asset = self.gym.create_box(self.sim, *([self.ball_size] * 3), ball_opts)
+        # ball_opts.linear_damping = 10
+        # ball_opts.angular_damping = 10
+        # ball_opts.thickness = 0.0001
+        # ball_asset_path = os.path.join(ball_asset_root, ball_asset_file)
+        # ball_asset_root = os.path.dirname(ball_asset_path)
+        # ball_asset_file = os.path.basename(ball_asset_path)
+        # ball_asset = self.gym.load_asset(self.sim, ball_asset_root, ball_asset_file, ball_opts)
+        ball_asset = self.gym.create_box(self.sim, *([self.ball_size] * 3), ball_opts)
 
         # ball_asset = self.gym.create_sphere(self.sim, self.ball_size, ball_opts)
 
         # ball_color = gymapi.Vec3(0.6, 0.1, 0.0)
-        ball_props = self.gym.get_asset_rigid_shape_properties(ball_asset)
-        for p in ball_props:
-            p.compliance = 0.0001
-            p.friction = 0
+        # ball_props = self.gym.get_asset_rigid_shape_properties(ball_asset)
+        # for p in ball_props:
+        #     p.compliance = 0.0001
+        #     p.friction = 0
         # ball_props = self.gym.get_asset_soft_materials(ball_asset)
         # for p in ball_props:
         #     p.youngs = 2000
         #     p.poissons = 0.5
-        self.gym.set_asset_rigid_shape_properties(ball_asset, ball_props)
+        # self.gym.set_asset_rigid_shape_properties(ball_asset, ball_props)
 
         self.num_robomaster_bodies = self.gym.get_asset_rigid_body_count(robomaster_asset)
         self.num_robomaster_dofs = self.gym.get_asset_dof_count(robomaster_asset)
@@ -202,6 +205,7 @@ class RobomasterFull(VecTask):
                 robomaster_dof_props['driveMode'][i] = gymapi.DOF_MODE_NONE
                 robomaster_dof_props['stiffness'][i] = 0
                 robomaster_dof_props['damping'][i] = 0
+            robomaster_dof_props['effort'][i] = 200
             self.robomaster_dof_lower_limits.append(robomaster_dof_props['lower'][i])
             self.robomaster_dof_upper_limits.append(robomaster_dof_props['upper'][i])
         # Define start pose for robomaster
@@ -443,16 +447,16 @@ def compute_robomaster_reward(
     # ballB_pos =  _root_state[:, 2, :2]
     norm_1 = torch.norm(ball_pos - eef_pos, dim=1)
     
-    norm_2 = 0.05 - ball_pos[:, 2]
+    norm_2 = torch.abs(ball_pos[:, 2])
 
-    stack_reward_1 = (norm_1 < 0.03)
-    dist_reward1 = -0.1 * torch.tanh(norm_1)*(1-stack_reward_1)
-    dist_reward2 = 0.1 * (stack_reward_1 - torch.tanh(norm_2)) * stack_reward_1
-    stack_reward = (torch.abs(ball_pos[:,2]-0.05)<0.01)
-    if torch.sum(stack_reward) > 0:
-        print('success!')
-    penalty1 = (torch.max(torch.abs(robomaster_pos), dim=1)[0]>1)
-    penalty2 = (torch.max(torch.abs(ball_pos), dim=1)[0]>1)
+    stack_reward_1 = (norm_1 < 0.03) & (torch.abs(ball_pos[:, 2] - eef_pos[:,2]) < 0.01)
+    dist_reward1 = -0.1 * torch.tanh(norm_1) * (1 - stack_reward_1)
+    dist_reward2 = 0.1 * (torch.tanh(norm_2)) * stack_reward_1
+    stack_reward = (norm_2 > 0.06)
+    # if torch.sum(stack_reward) > 0:
+    #     print('success!')
+    penalty1 = (torch.max(torch.abs(robomaster_pos), dim=1)[0] > 1)
+    penalty2 = (torch.max(torch.abs(ball_pos), dim=1)[0] > 1)
     penalty3 = (torch.max(torch.abs(_root_state[:, 0, 3:5]), dim=1)[0] > 0.3)
     # Compose rewards
     # rewards = stack_reward
